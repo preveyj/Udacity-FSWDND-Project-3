@@ -1,5 +1,7 @@
 from flask import Flask
 from flask import jsonify
+from flask import render_template
+
 
 app = Flask(__name__)
 
@@ -9,7 +11,7 @@ def hello_world():
 	
 @app.route('/<category>/')
 def showCategory(category):
-	return 'Category: ' + category
+	return render_template('category.html', category=category)
 	
 @app.route('/<category>/<item>/')
 def showVariables(category, item):

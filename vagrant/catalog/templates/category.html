@@ -1,0 +1,14 @@
+<!-- Category view template -->
+<html>
+	<head>
+		<title>{{category}}</title>
+	</head>
+	<body>
+	<h1>Category: {{category}}</h1>
+		<ul>
+			{% for i in category.items %}
+				<li>{{i.name}}</li>
+			{% endfor %}
+		</ul>
+	</body>
+</html>
