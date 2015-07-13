@@ -1,0 +1,16 @@
+<nav class="navbar navbar-default navbar-static-top">
+	<div class="container">
+		<ul class="nav navbar-nav navbar-right">{% if loggedIn %}
+			<li>
+				<button class="btn btn-default" type="button" onclick="doLogout();">Log Out</button>
+			</li>{% else %}
+			<li>
+				<!-- invisible once logged in -->
+				<div id="signInButton">
+					<span class="g-signin" data-scope="openid email" data-clientid="446870120160-fvfntf8j4i5b6bdu22440df55cnpeldu.apps.googleusercontent.com"
+					data-redirecturi="postmessage" data-accesstype="offline" data-cookiepolicy="single_host_origin" data-callback="signInCallback"
+					data-approvalprompt="force"></span>
+				</div>
+			</li>{% endif %}</ul>
+	</div>
+</nav>

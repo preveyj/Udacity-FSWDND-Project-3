@@ -1,0 +1,9 @@
+
+<div class="col-md-2">
+	<h3>Items</h3>
+	<ul class="list-unstyled">
+		{% for i in category.items %}
+			<li><a href='/{{category.name}}/{{i.name}}'/>{{i.name}}</a></li>
+		{% endfor %}
+	</ul>
+</div>
