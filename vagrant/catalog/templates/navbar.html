@@ -1,9 +1,27 @@
 <nav class="navbar navbar-default navbar-static-top">
 	<div class="container">
-		<ul class="nav navbar-nav navbar-right">{% if loggedIn %}
+		{% if loggedIn %}
+		<ul class="nav navbar-nav navbar-left">
+			<button class="btn btn-default" type="button" onclick="createCategory();">Create Category</button>
+			
+			{% if category is defined %}
+			<button class="btn btn-default" type="button" onclick="updateCategory('{{category.name}}');">Update Category</button>
+			<button class="btn btn-default" type="button" onclick="deleteCategory('{{category.name}}');">Delete Category</button>
+			<button class="btn btn-default" type="button" onclick="createItem('{{category.name}}');">Create Item</button>
+			
+				{% if item is defined %}
+				<button class="btn btn-default" type="button" onclick="updateItem('{{category.name}}', '{{item.name}}');">Update Item</button>
+				<button class="btn btn-default" type="button" onclick="deleteItem('{{category.name}}', '{{item.name}}');">Delete Item</button>
+				{% endif %}
+			{% endif %}
+		</ul>
+		{% endif %}
+		<ul class="nav navbar-nav navbar-right">
+			{% if loggedIn %}
 			<li>
 				<button class="btn btn-default" type="button" onclick="doLogout();">Log Out</button>
-			</li>{% else %}
+			</li>
+			{% else %}
 			<li>
 				<!-- invisible once logged in -->
 				<div id="signInButton">
@@ -11,6 +29,7 @@
 					data-redirecturi="postmessage" data-accesstype="offline" data-cookiepolicy="single_host_origin" data-callback="signInCallback"
 					data-approvalprompt="force"></span>
 				</div>
-			</li>{% endif %}</ul>
+			</li>
+			{% endif %}</ul>
 	</div>
 </nav>

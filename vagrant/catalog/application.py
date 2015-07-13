@@ -8,6 +8,7 @@ import httplib2
 import requests
 import random, string
 import json
+import sys, traceback
 
 app = Flask(__name__)
 app.debug = True
@@ -37,16 +38,16 @@ def getItem(ItemName):
 
 # This is one of the methods borrowed from ud330
 def getRandomTokenString():
-	print 'generating state'
+	#print 'generating state'
 	return ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
 
 def isUserLoggedIn():
 	#Check if the user is logged in.  'username' should be in login_session if the user is logged in.
 	if 'username' not in login_session:
-		print 'user is not logged in'
+		#print 'user is not logged in'
 		return False
 	else:
-		print 'user is logged in'
+		#print 'user is logged in'
 		return True
 
 # Routes
@@ -62,8 +63,8 @@ def hello_world():
 # This is another method borrowed from ud330, and remains mostly unchanged.
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
-	print request.args.get('state')
-	print login_session['state']
+	#print request.args.get('state')
+	#print login_session['state']
 	if request.args.get('state') != login_session['state']:
 		response = make_response(json.dumps('Invalid state parameter'), 401)
 		response.headers['Content-Type'] = 'application/json'
@@ -142,7 +143,7 @@ def gdisconnect():
 	result = h.request(url, 'GET')[0]
 	
 	if result['status'] == '200':
-		print 'returned status is OK'
+		#print 'returned status is OK'
 		del login_session['credentials']
 		del login_session['gplus_id']
 		del login_session['username']
@@ -153,7 +154,7 @@ def gdisconnect():
 		
 		return response
 	else:
-		print 'error logging out'
+		#print 'error logging out'
 		# For whatever reason, the given token was invalid.
 		
 		response = make_response(json.dumps('Failed to revoke token for given user.', 400))
@@ -162,8 +163,33 @@ def gdisconnect():
 		return response
 
 @app.route('/create', methods=['POST'])
-def newCategory(category):
-	return None
+def newCategory():
+	#print 'Entered newCategory()'
+	if isUserLoggedIn() == False:
+		return redirect('/')
+	elif request.form['state'] != login_session['state']:
+		#print 'Invalid State'
+		response = make_response(json.dumps("Invalid state!"), 401)
+		response.headers['Content-Type'] = 'application/json'
+		return response
+	else:
+		#db ops
+		try:
+			#print 'Trying to create new category'
+			NewCategory = Category(name = request.form['name'])
+			s.add(NewCategory)
+			s.commit()
+		except:
+			#print sys.exc_info()[0]
+			#print 'Found some error'
+			response = make_response(json.dumps("Error!"), 500)
+			response.headers['Content-Type'] = 'application/json'
+			return response
+		
+		#print 'Created category'
+		response = make_response(json.dumps("Category added!"), 200)
+		response.headers['Content-Type'] = 'application/json'
+		return response
 	
 @app.route('/JSON/<category>/')
 def returnCategoryAsJson(category):
@@ -186,30 +212,90 @@ def showCategory(category):
 		
 @app.route('/<category>/update', methods=['POST'])
 def updateCategory(category):
-	if isUserLoggedIn() is not None:
-		return isUserLoggedIn()
-	elif request.args.get('state') != login_session['state']:
+	if isUserLoggedIn() == False:
+		return redirect('/')
+	elif request.form['state'] != login_session['state']:
 		response = make_response(json.dumps("Invalid state!"), 401)
 		response.headers['Content-Type'] = 'application/json'
 		return response
 	else:
-		return 'Update category'
+		try:
+			CategoryToUpdate = getSpecificCategory(category)
+			CategoryToUpdate.name = request.form['name']
+			s.add(CategoryToUpdate)
+			s.commit()
+		except:
+			#print sys.exc_info()[0]
+			response = make_response(json.dumps("Error!"), 500)
+			response.headers['Content-Type'] = 'application/json'
+			return response
+		
+		response = make_response(json.dumps("Category updated!"), 200)
+		response.headers['Content-Type'] = 'application/json'
+		return response
 	
 @app.route('/<category>/delete', methods=['POST'])
 def deleteCategory(category):
-	if isUserLoggedIn() is not None:
-		return isUserLoggedIn()
-	elif request.args.get('state') != login_session['state']:
+	if isUserLoggedIn() == False:
+		return redirect('/')
+	elif request.form['state'] != login_session['state']:
 		response = make_response(json.dumps("Invalid state!"), 401)
 		response.headers['Content-Type'] = 'application/json'
 		return response
 	else:
-		return 'Delete category'
+		try:
+			CategoryToDelete = getSpecificCategory(category)
+			s.delete(CategoryToDelete)
+			s.commit()
+		except:
+			#print sys.exc_info()[0]
+			response = make_response(json.dumps("Error!"), 500)
+			response.headers['Content-Type'] = 'application/json'
+			return response
+			
+		response = make_response(json.dumps("Category deleted!"), 200)
+		response.headers['Content-Type'] = 'application/json'
+		return response
 		
-@app.route('/<category>/createItem', methods=['POST'])
-def createItem(category, item):
-	if isUserLoggedIn() is not None:
-		return isUserLoggedIn()
+#User submits a new item
+@app.route('/<category>/submitItem', methods=['POST'])
+def submitItem(category):
+	if isUserLoggedIn() == False:
+		return redirect('/')
+	elif request.form['state'] != login_session['state']:
+		response = make_response(json.dumps("Invalid state!"), 401)
+		response.headers['Content-Type'] = 'application/json'
+		return response
+	else:
+		try:
+			#print 'Beginning item finding'
+			ItemToUpdate = getItem(request.form['oldName'])
+			
+			if (ItemToUpdate is None):
+				#print "Couldn't find existing item, creating new item"
+				ParentCategory = getSpecificCategory(request.form['category'])
+				ItemToUpdate = Item(name = request.form['name'], description = request.form['description'], category = ParentCategory)
+			else:
+				ItemToUpdate.name = request.form['name']
+				ItemToUpdate.description = request.form['description']
+			
+			s.add(ItemToUpdate)
+			s.commit()
+		except:
+   			#print(traceback.format_exc())
+			response = make_response(json.dumps("Error!"), 500)
+			response.headers['Content-Type'] = 'application/json'
+			return response
+			
+		response = make_response(json.dumps("Item submitted!"), 200)
+		response.headers['Content-Type'] = 'application/json'
+		return response
+
+#User wants to create a new item; show the editItem.html template
+@app.route('/<category>/createItem')
+def createItem(category):
+	if isUserLoggedIn() == False:
+		return redirect('/')
 	elif request.args.get('state') != login_session['state']:
 		response = make_response(json.dumps("Invalid state!"), 401)
 		response.headers['Content-Type'] = 'application/json'
@@ -217,9 +303,10 @@ def createItem(category, item):
 	else:
 		categories = getCategories()
 		dbCategory = getSpecificCategory(category)
-		dbItem = getItem(item)
+		login_session['state'] = getRandomTokenString();
 		
-		return 'create item'
+		#The Jinja filter tests "if item is defined", but None counts as 'defined', so we omit the item this time.
+		return render_template('editItem.html', categories = categories, category = dbCategory, loggedIn = isUserLoggedIn(), STATE = login_session['state'])
 	
 @app.route('/<category>/<item>/')
 def showVariables(category, item):
@@ -230,10 +317,10 @@ def showVariables(category, item):
 	
 	return render_template('item.html', categories = categories, category = dbCategory, item = dbItem, loggedIn = isUserLoggedIn(), STATE = login_session['state'])
 	
-@app.route('/<category>/<item>/update', methods=['POST'])
-def updateItem(category, item):
-	if isUserLoggedIn() is not None:
-		return isUserLoggedIn()
+@app.route('/<category>/<item>/edit')
+def showItemEditTemplate(category, item):
+	if isUserLoggedIn() == False:
+		return redirect('/')
 	elif request.args.get('state') != login_session['state']:
 		response = make_response(json.dumps("Invalid state!"), 401)
 		response.headers['Content-Type'] = 'application/json'
@@ -242,22 +329,34 @@ def updateItem(category, item):
 		categories = getCategories()
 		dbCategory = getSpecificCategory(category)
 		dbItem = getItem(item)
+		login_session['state'] = getRandomTokenString();
 		
-		return 'update item'
+		return render_template('editItem.html', item = dbItem, categories = categories, category = dbCategory, loggedIn = isUserLoggedIn(), STATE = login_session['state'])
 
 @app.route('/<category>/<item>/delete', methods=['POST'])	
 def deleteItem(category, item):
-	if isUserLoggedIn() is not None:
-		return isUserLoggedIn()
-	elif request.args.get('state') != login_session['state']:
+	if isUserLoggedIn() == False:
+		return redirect('/')
+	elif request.form['state'] != login_session['state']:
 		response = make_response(json.dumps("Invalid state!"), 401)
 		response.headers['Content-Type'] = 'application/json'
 		return response
 	else:
-		categories = getCategories()
-		dbCategory = getSpecificCategory(category)
-		dbItem = getItem(item)
-		return 'delete item'
+		try:
+			#print 'Submitted item name is ' + request.form['name']
+			ItemToDelete = getItem(request.form['name'])
+			#print 'ItemToDelete is ' + ItemToDelete.name
+			s.delete(ItemToDelete)
+			s.commit()
+		except:
+			#print sys.exc_info()[0]
+			response = make_response(json.dumps("Error!"), 500)
+			response.headers['Content-Type'] = 'application/json'
+			return response
+			
+		response = make_response(json.dumps("Item deleted!"), 200)
+		response.headers['Content-Type'] = 'application/json'
+		return response
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)

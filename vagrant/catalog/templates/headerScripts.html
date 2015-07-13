@@ -44,4 +44,117 @@ function doLogout() {
 		}
 	})
 }
+
+function createCategory() {
+	var newCategoryName = prompt("Please enter a new category name:", 'Name');
+	
+	if (newCategoryName) {
+		$.ajax({
+			type: 'POST',
+			url: '/create',
+			data: {
+				name: newCategoryName,
+				state: '{{STATE}}'
+			},
+			success: function(result) {
+				window.location.href = '/' + newCategoryName;
+			},
+			error: function(result) {
+				alert("Could not create new category.");
+			}
+		});
+	}
+}
+
+function updateCategory(oldCategoryName) {
+	var newCategoryName = prompt("Please enter a new category name:", 'Name');
+	
+	if (newCategoryName) {
+		$.ajax({
+			type: 'POST',
+			url: '/' + oldCategoryName + '/update',
+			data: {
+				name: newCategoryName,
+				state: '{{STATE}}'
+			},
+			success: function(result) {
+				window.location.href = '/' + newCategoryName;
+			},
+			error: function(result) {
+				alert("Could not update category.");
+			}
+		});
+	}
+}
+
+function deleteCategory(categoryName) {
+	var continueDelete = confirm("Are you sure you want to delete " + categoryName + "?  This will also delete all its items!");
+	
+	if (continueDelete === true) {
+		$.ajax({
+			type: 'POST',
+			url: '/' + categoryName + '/delete',
+			data: {
+				state: '{{STATE}}'
+			},
+			success: function(result) {
+				window.location.href = '/';
+			},
+			error: function(result) {
+				alert("Could not delete category.");
+			}
+		});
+	}
+}
+
+function createItem(categoryName) {
+	//go to new item template
+	window.location.href = '/' + categoryName + '/createItem?state={{STATE}}';
+}
+
+function updateItem(categoryName, itemName) {
+	window.location.href = '/' + categoryName + '/' + itemName + "/edit?state={{STATE}}";
+}
+
+function deleteItem(categoryName, itemName) {
+	var continueDelete = confirm("Are you sure you want to delete " + itemName + "?")
+	
+	if (continueDelete === true) {
+		$.ajax({
+			type: 'POST',
+			url: '/' + categoryName + '/' + itemName + '/delete',
+			data: {
+				name: itemName,
+				state: '{{STATE}}'
+			},
+			success: function(result) {
+				window.location.href = '/';
+			},
+			error: function(result) {
+				alert("Could not delete category.");
+			}
+		});
+	}
+}
+
+function submitItem(categoryName) {
+	$.ajax({
+		type: 'POST',
+		url: '/' + categoryName + '/submitItem',
+		data: {
+			name: $('#itemName').val(),
+			{% if item is defined %} oldName: '{{item.name}}', {% endif %}
+			description: $('#itemDescription').val(),
+			category: categoryName,
+			state: '{{STATE}}'
+		},
+		success: function(result) {
+			window.location.href = '/' + categoryName + '/' + $('#itemName').val();
+		},
+		error: function(result) {
+			alert("Could not submit item.");
+		}
+	});
+}
+
 </script>
