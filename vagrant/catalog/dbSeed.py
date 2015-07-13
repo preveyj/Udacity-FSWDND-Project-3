@@ -40,59 +40,31 @@ class Item(Base):
 	category_id = Column(Integer, ForeignKey('category.id'))
 	category = relationship(Category, backref=backref('categories', uselist=True))
 
-engine = create_engine('sqlite:///catalog.db')
-
-print engine
-
-session = sessionmaker()
-
-print session
-
-session.configure(bind=engine)
-
-print "Dropping tables"
-Base.metadata.drop_all(engine)
-
-print "Creating tables"
-Base.metadata.create_all(engine)
+def seedTheDB():
+	engine = create_engine('sqlite:///catalog.db')
+	session = sessionmaker()
+	session.configure(bind=engine)
 	
-print "Creating records"
-
-Books = Category(name='Books')
-Movies = Category(name='Movies')
-
-print Books.name
-print Movies.name
-
-TheSunAlsoRises = Item(name='The Sun Also Rises', description='By Ernest Hemingway about a group of American and British expatriates who travel from Paris to Pamplona.', category = Books)
-LOTR = Item(name="The Lord of the Rings", description="By JRR Tolkein, it's the grandfather of fantasy!", category=Books)
-Yojimbo = Item(name='Yojimbo', description='This Kurosawa movie is amazing!', category=Movies)
-
-'''print TheSunAlsoRises.name'''
-
-s = session()
-s.add(Books)
-s.add(TheSunAlsoRises)
-s.commit()
-print "Items in database:"
-for i in s.query(Item).all():
-	print i.name
+	print "Dropping tables"
+	Base.metadata.drop_all(engine)
 	
-print "Categories in database:"
-for i in s.query(Category).all():
-	print i.name
-	for d in i.items:
-		print d.name
+	print "Creating tables"
+	Base.metadata.create_all(engine)
 		
-print 'Selecting a single category'
-print s.query(Category).filter(Category.name  == 'Books').all()
-
-for i in s.query(Category).filter(Category.name  == 'Books').all():
-	print i.name
+	print "Creating records"
 	
-s.delete(Books)
-
-print "After delete"
-print "Categories in database:"
-for i in s.query(Category).all():
-	print i.name
+	Books = Category(name='Books')
+	Movies = Category(name='Movies')
+	
+	TheSunAlsoRises = Item(name='The Sun Also Rises', description='By Ernest Hemingway about a group of American and British expatriates who travel from Paris to Pamplona.', category = Books)
+	LOTR = Item(name="The Lord of the Rings", description="By JRR Tolkein, it's the grandfather of fantasy!", category=Books)
+	Yojimbo = Item(name='Yojimbo', description='This Kurosawa movie is amazing!', category=Movies)
+		
+	s = session()
+	s.add(Books)
+	s.add(TheSunAlsoRises)
+	s.add(Movies)
+	s.add(Yojimbo)
+	s.commit()
+	
+	print "Finished!"

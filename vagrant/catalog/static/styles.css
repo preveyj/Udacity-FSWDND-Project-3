@@ -1,0 +1,14 @@
+.container {
+	width: 90%;
+	background: white;
+}
+
+body {
+	background: grey;
+}
+
+.header {
+	width: 100%;
+	background: navy;
+	color: white;
+}
