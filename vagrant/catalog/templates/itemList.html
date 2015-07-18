@@ -1,9 +1,9 @@
 
 <div class="col-md-2">
-	<h3>Items</h3>
+	<h3>Items in {{category.name}}</h3>
 	<ul class="list-unstyled">
 		{% for i in category.items %}
-			<li><a href='/{{category.name}}/{{i.name}}'/>{{i.name}}</a></li>
+			<li><a href='/catalog/{{category.name}}/{{i.name}}/'/>{{i.name}}</a> <a href='/api/item/{{i.id}}'>(view JSON)</a></li>
 		{% endfor %}
 	</ul>
 </div>

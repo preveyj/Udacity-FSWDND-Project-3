@@ -19,6 +19,7 @@ from sqlalchemy import Column, String, Integer, ForeignKey
 from sqlalchemy.orm import relationship, backref, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
+import json
 
 print "dbSeed.py has begun"
 
@@ -41,6 +42,7 @@ class Item(Base):
 	category = relationship(Category, backref=backref('categories', uselist=True))
 
 def seedTheDB():
+	#Reset the database.
 	engine = create_engine('sqlite:///catalog.db')
 	session = sessionmaker()
 	session.configure(bind=engine)
@@ -67,4 +69,18 @@ def seedTheDB():
 	s.add(Yojimbo)
 	s.commit()
 	
-	print "Finished!"
+	engine.dispose()
+	print "Finished initializing database.  Continuing to web server."
+	
+def checkTheDB():
+	#If the database is not already initialized, initialize it.
+	engine = create_engine('sqlite:///catalog.db')
+	if engine.has_table('category'):
+		print "Database exists.  Continuing to web server."
+		engine.dispose()
+	else:
+		print "Database does not yet exist.  Initializing database."
+		engine.dispose()
+		seedTheDB()
+	
+	
