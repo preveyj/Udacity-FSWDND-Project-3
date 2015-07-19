@@ -80,6 +80,8 @@ FEATURES:
 	You can view JSON for individual objects with the following URLs:
 		http://localhost:8000/api/category/<id>  where <id> is the ID of the category you want to view.
 		http://localhost:8000/api/item/<id> where <id> is the ID of the item you want to view.
+		
+	NOTE: The library used for creating the JSON endpoints does not resolve URLs with trailing slashes.  Make sure to omit trailing slashes from API endpoint URL requests if you type them in by hand!
 
 
 Third-party code sources:

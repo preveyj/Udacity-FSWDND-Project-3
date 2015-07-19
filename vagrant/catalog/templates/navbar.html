@@ -5,13 +5,13 @@
 			<button class="btn btn-default" type="button" onclick="createCategory();">Create Category</button>
 			
 			{% if category is defined %}
-			<button class="btn btn-default" type="button" onclick="updateCategory('{{category.name}}');">Update Category</button>
-			<button class="btn btn-default" type="button" onclick="deleteCategory('{{category.name}}');">Delete Category</button>
-			<button class="btn btn-default" type="button" onclick="createItem('{{category.name}}');">Create Item</button>
+			<button class="btn btn-default" type="button" onclick="updateCategory({{category.id}});">Update Category</button>
+			<button class="btn btn-default" type="button" onclick="deleteCategory({{category.id}}, '{{category.name}}');">Delete Category</button>
+			<button class="btn btn-default" type="button" onclick="createItem({{category.id}});">Create Item</button>
 			
 				{% if item is defined %}
-				<button class="btn btn-default" type="button" onclick="updateItem('{{category.name}}', '{{item.name}}');">Update Item</button>
-				<button class="btn btn-default" type="button" onclick="deleteItem('{{category.name}}', '{{item.name}}');">Delete Item</button>
+				<button class="btn btn-default" type="button" onclick="updateItem({{category.id}}, {{item.id}});">Update Item</button>
+				<button class="btn btn-default" type="button" onclick="deleteItem({{category.id}}, {{item.id}}, '{{item.name}}');">Delete Item</button>
 				{% endif %}
 			{% endif %}
 		</ul>

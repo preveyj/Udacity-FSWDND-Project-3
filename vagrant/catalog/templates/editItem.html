@@ -12,20 +12,26 @@
 		<script type="text/javascript">
 			$('#itemForm').submit(function(event) {
 				event.preventDefault();
-				
-				submitItem('{{category.name}}');
-				
+				formItemForSubmit();
 				return false;
-			})
+			});
 			
 			$('#itemName').keyup(function(e) {
 				if (e.keyCode == 13) {
 					e.preventDefault();
-					submitItem('{{category.name}}');
-				}
-				
+				};
+				formItemForSubmit();
 				return false;
-			})
+			});
+			
+			function formItemForSubmit() {
+				submitItem('{{category.id}}', 
+					{
+						id: {% if item is defined %} {{item.id}} {% else %} 0 {% endif %},
+						name: $('#itemName').val().trim(),
+						description: $('#itemDescription').val().trim()
+					});
+			};
 			
 		</script>
 	</head>
@@ -43,7 +49,7 @@
 						<div class="form-group">Item Description:
 							<textarea id="itemDescription">{% if item is defined %}{{item.description}}{% endif %}</textarea>
 						</div>
-						<button id="submitChange" onclick="submitItem('{{category.name}}');" type="submit">Submit</button>
+						<button id="submitChange" onclick="formItemForSubmit();" type="submit">Submit</button>
 					</form>
 				</div>
 			</div>

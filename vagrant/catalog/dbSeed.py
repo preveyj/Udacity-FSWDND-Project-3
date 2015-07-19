@@ -42,7 +42,7 @@ class Item(Base):
 	category = relationship(Category, backref=backref('categories', uselist=True))
 
 def seedTheDB():
-	#Reset the database.
+	# Reset the database.
 	engine = create_engine('sqlite:///catalog.db')
 	session = sessionmaker()
 	session.configure(bind=engine)
@@ -58,7 +58,9 @@ def seedTheDB():
 	Books = Category(name='Books')
 	Movies = Category(name='Movies')
 	
-	TheSunAlsoRises = Item(name='The Sun Also Rises', description='By Ernest Hemingway about a group of American and British expatriates who travel from Paris to Pamplona.', category = Books)
+	TheSunAlsoRises = Item(
+		name='The Sun Also Rises', 
+		description='By Ernest Hemingway about a group of American and British expatriates who travel from Paris to Pamplona.', category = Books)
 	LOTR = Item(name="The Lord of the Rings", description="By JRR Tolkein, it's the grandfather of fantasy!", category=Books)
 	Yojimbo = Item(name='Yojimbo', description='This Kurosawa movie is amazing!', category=Movies)
 		
@@ -73,7 +75,7 @@ def seedTheDB():
 	print "Finished initializing database.  Continuing to web server."
 	
 def checkTheDB():
-	#If the database is not already initialized, initialize it.
+	# If the database is not already initialized, initialize it.
 	engine = create_engine('sqlite:///catalog.db')
 	if engine.has_table('category'):
 		print "Database exists.  Continuing to web server."

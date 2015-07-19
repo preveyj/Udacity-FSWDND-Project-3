@@ -17,10 +17,10 @@ function signInCallback(authResult) {
 			data: authResult['code'],
 			success: function(result) {
 				if (result) {
-					console.log('Logged in');
 					location.reload();
 				} else if (authResult['error']) {
-					console.log('There was an error: ' + authResult['error']);
+					alert('There was an error: ' + authResult['error'] + 
+						'\nPlease refresh the page and try again.');
 				} else {
 					alert('Failed to make a server-side call.  Check your configuration and console.');
 				}
@@ -35,7 +35,6 @@ function doLogout() {
 		processData: false,
 		success: function(result) {
 			if (result) {
-				console.log('Logged out');
 				location.reload();
 			}
 		},
@@ -57,7 +56,7 @@ function createCategory() {
 				state: '{{STATE}}'
 			},
 			success: function(result) {
-				window.location.href = '/catalog/' + newCategoryName + '/';
+				window.location.href = '/catalog/' + result + '/';
 			},
 			error: function(result) {
 				alert("Could not create new category.");
@@ -66,19 +65,21 @@ function createCategory() {
 	}
 }
 
-function updateCategory(oldCategoryName) {
-	var newCategoryName = prompt("Please enter a new category name:", 'Name');
+function updateCategory(categoryId) {
+	var newCategoryName = prompt("Please enter a new category name:",
+			{% if category is defined %} '{{category.name}}' {% else %} 'Name' {% endif %}
+		);
 	
 	if (newCategoryName) {
 		$.ajax({
 			type: 'POST',
-			url: '/catalog/' + oldCategoryName + '/update',
+			url: '/catalog/' + categoryId + '/update',
 			data: {
 				name: newCategoryName,
 				state: '{{STATE}}'
 			},
 			success: function(result) {
-				window.location.href = '/catalog/' + newCategoryName;
+				window.location.href = '/catalog/' + categoryId;
 			},
 			error: function(result) {
 				alert("Could not update category.");
@@ -87,13 +88,13 @@ function updateCategory(oldCategoryName) {
 	}
 }
 
-function deleteCategory(categoryName) {
+function deleteCategory(categoryId, categoryName) {
 	var continueDelete = confirm("Are you sure you want to delete " + categoryName + "?  This will also delete all its items!");
 	
 	if (continueDelete === true) {
 		$.ajax({
 			type: 'POST',
-			url: '/catalog/' + categoryName + '/delete',
+			url: '/catalog/' + categoryId + '/delete',
 			data: {
 				state: '{{STATE}}'
 			},
@@ -107,28 +108,28 @@ function deleteCategory(categoryName) {
 	}
 }
 
-function createItem(categoryName) {
-	//go to new item template
-	window.location.href = '/catalog/' + categoryName + '/createItem?state={{STATE}}';
+function createItem(categoryId) {
+	window.location.href = '/catalog/' + categoryId + '/createItem?state={{STATE}}';
 }
 
-function updateItem(categoryName, itemName) {
-	window.location.href = '/catalog/' + categoryName + '/' + itemName + "/edit?state={{STATE}}";
+function updateItem(categoryId, itemId) {
+	window.location.href = '/catalog/' + categoryId + '/' + itemId + "/edit?state={{STATE}}";
 }
 
-function deleteItem(categoryName, itemName) {
+function deleteItem(categoryId, itemId, itemName) {
 	var continueDelete = confirm("Are you sure you want to delete " + itemName + "?")
 	
 	if (continueDelete === true) {
 		$.ajax({
 			type: 'POST',
-			url: '/catalog/' + categoryName + '/' + itemName + '/delete',
+			url: '/catalog/' + categoryId + '/' + itemId + '/delete',
 			data: {
+				id: itemId,
 				name: itemName,
 				state: '{{STATE}}'
 			},
 			success: function(result) {
-				window.location.href = '/';
+				window.location.href = '/catalog/' + categoryId + '/';
 			},
 			error: function(result) {
 				alert("Could not delete category.");
@@ -137,23 +138,21 @@ function deleteItem(categoryName, itemName) {
 	}
 }
 
-function submitItem(categoryName) {
+function submitItem(categoryId, newItem) {
 	$.ajax({
 		type: 'POST',
-		url: '/catalog/' + categoryName + '/submitItem',
+		url: '/catalog/' + categoryId + '/submitItem',
 		data: {
-			name: $('#itemName').val().trim(),
-			oldName: {% if item is defined %} '{{item.name}}' {% else %} '' {% endif %} , 
-			description: $('#itemDescription').val().trim(),
-			category: categoryName,
+			name: newItem.name,
+			id: newItem.id,
+			description: newItem.description,
+			category: categoryId,
 			state: '{{STATE}}'
 		},
 		success: function(result) {
-			console.log("item was submitted");
-			window.location.href = '/catalog/' + categoryName + '/' + $('#itemName').val().trim() + '/';
+			window.location.href = '/catalog/' + categoryId + '/' + result + '/';
 		},
 		error: function(result) {
-			console.log(result);
 			alert("Could not submit item.");
 		}
 	});

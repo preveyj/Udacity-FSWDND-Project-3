@@ -1,24 +1,27 @@
-from flask import Flask, jsonify, render_template, make_response, request, flash, redirect, url_for
+import requests
+import random
+import string
+import json
+import sys
+import traceback
+from flask import Flask, jsonify, render_template, make_response
+from flask import flash, redirect, url_for, request
 from flask import session as login_session
 from flask import __version__ as FlaskVersion
 from sqlalchemy import create_engine
 from sqlalchemy import __version__ as AlchemyVersion
 from sqlalchemy.orm import sessionmaker
-import dbSeed
-from dbSeed import Category, Item
 from oauth2client.client import flow_from_clientsecrets, FlowExchangeError
 import httplib2
-import requests
-import random, string
-import json
-import sys, traceback
 import flask.ext.restless
+import dbSeed
+from dbSeed import Category, Item
 
 app = Flask(__name__)
 app.debug = True
 
-""" This key should normally be hard to guess, like a strong password. For now,
- we're going to use something simple. """
+# This key should normally be hard to guess, like a strong password. For now,
+# we're going to use something simple.
  
 app.secret_key = 'super secret key'
 
@@ -31,44 +34,51 @@ manager = flask.ext.restless.APIManager(app, session = s)
 category_blueprint = manager.create_api(Category, methods=['GET'])
 item_blueprint = manager.create_api(Item, methods=['GET'])
 
-CLIENT_ID = json.loads(open('client_secrets.json', 'r').read())['web']['client_id']
+CLIENT_ID = json.loads(
+		open('client_secrets.json', 'r').read()
+	)['web']['client_id']
 
-#Check and initialize the database if needed.
+# Check and initialize the database if needed.
 dbSeed.checkTheDB()
 
 # Helper methods to improve code reuse
 def getCategories():
 	return s.query(Category).all()
 
-def getSpecificCategory(categoryName):
-	return s.query(Category).filter(Category.name == categoryName).first()
+def getSpecificCategory(categoryId):
+	return s.query(Category).filter(Category.id == categoryId).first()
 	
-def getItem(ItemName):
-	return s.query(Item).filter(Item.name == ItemName).first()
+def getItem(itemId):
+	return s.query(Item).filter(Item.id == itemId).first()
 
 # This is one of the methods borrowed from ud330
 def getRandomTokenString():
-	#print 'generating state'
-	return ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
+	return ''.join(
+		random.choice(
+				string.ascii_uppercase + string.digits
+			) for x in xrange(32)
+		)
 
 def isUserLoggedIn():
-	#Check if the user is logged in.  'username' should be in login_session if the user is logged in.
+	# Check if the user is logged in.  'username' should be in login_session
+	# if the user is logged in.
 	if 'username' not in login_session:
-		#print 'user is not logged in'
 		return False
 	else:
-		#print 'user is logged in'
 		return True
 
-# Routes
-#app.add_url_rule('/favicon.ico', redirect_to=url_for('static', filename='favicon.ico'))
-
+# Route definitions
 @app.route('/')
 def hello_world():
 	categories = getCategories()
 	login_session['state'] = getRandomTokenString()
 			
-	return render_template('index.html', categories = categories, loggedIn = isUserLoggedIn(), STATE = login_session['state'])
+	return render_template(
+			'index.html', 
+			categories = categories, 
+			loggedIn = isUserLoggedIn(), 
+			STATE = login_session['state']
+		)
 	
 @app.route('/getVersions')
 def getVersions():
@@ -77,8 +87,6 @@ def getVersions():
 # This is another method borrowed from ud330, and remains mostly unchanged.
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
-	#print request.args.get('state')
-	#print login_session['state']
 	if request.args.get('state') != login_session['state']:
 		response = make_response(json.dumps('Invalid state parameter'), 401)
 		response.headers['Content-Type'] = 'application/json'
@@ -90,7 +98,11 @@ def gconnect():
 		oauth_flow.redirect_uri = 'postmessage'
 		credentials= oauth_flow.step2_exchange(code)
 	except FlowExchangeError:
-		response = make_response(json.dumps('Failed to upgrade the authorization code.'), 401)
+		response = make_response(
+				json.dumps('Failed to upgrade the authorization code.'), 
+				401
+			)
+			
 		response.headers['Content-Type'] = 'application/json'
 		return response
 	
@@ -106,12 +118,20 @@ def gconnect():
 	gplus_id = credentials.id_token['sub']
 	
 	if result['user_id'] != gplus_id:
-		response = make_response(json.dumps("Token's user ID doesn't match given user ID."), 401)
+		response = make_response(
+				json.dumps("Token's user ID doesn't match given user ID."),
+				401
+			)
+			
 		response.headers['Content-Type'] = 'application/json'
 		return response
 		
 	if result['issued_to'] != CLIENT_ID:
-		response = make_response(json.dumps("Token's client ID does not match app's"), 401)
+		response = make_response(
+				json.dumps("Token's client ID does not match app's"), 
+				401
+			)
+			
 		response.headers['Content-Type'] = 'application/json'
 		return response
 
@@ -119,7 +139,10 @@ def gconnect():
 	stored_gplus_id = login_session.get('gplus_id')
 
 	if stored_credentials is not None and gplus_id == stored_gplus_id:
-		response = make_response(json.dumps('Current user is already connected.'), 200)
+		response = make_response(
+				json.dumps('Current user is already connected.'), 
+				200
+			)
 		response.headers['Content-Type'] = 'application/json'
 		return response
 
@@ -144,10 +167,12 @@ def gconnect():
 @app.route('/gdisconnect')
 def gdisconnect():
 	# Only disconnect a connected user.
-	
 	credentials = login_session.get('credentials')
 	if credentials is None:
-		response = make_response(json.dumps('Current user not connected.'), 401)
+		response = make_response(
+				json.dumps('Current user not connected.'), 401
+			)
+			
 		response.headers['Content-Type'] = 'application/json'
 		return response
 		
@@ -157,7 +182,6 @@ def gdisconnect():
 	result = h.request(url, 'GET')[0]
 	
 	if result['status'] == '200':
-		#print 'returned status is OK'
 		del login_session['credentials']
 		del login_session['gplus_id']
 		del login_session['username']
@@ -168,65 +192,63 @@ def gdisconnect():
 		
 		return response
 	else:
-		#print 'error logging out'
 		# For whatever reason, the given token was invalid.
 		
-		response = make_response(json.dumps('Failed to revoke token for given user.', 400))
+		response = make_response(
+				json.dumps('Failed to revoke token for given user. Doing hard logout.', 400)
+			)
+			
+		del login_session['credentials']
+		del login_session['gplus_id']
+		del login_session['username']
+		del login_session['email']
+			
 		response.headers['Content-Type'] = 'application/json'
 		
 		return response
 
 @app.route('/catalog/create', methods=['POST'])
-def newCategory():
-	print 'newCategory'
-	print 'Key given: ' + request.form['state']
-	print 'Key expected: ' + login_session['state']
-	
-	#print 'Entered newCategory()'
+def newCategory():	
 	if isUserLoggedIn() == False:
-		return redirect('/')
+		return render_template('loginError.html')
 	elif request.form['state'] != login_session['state']:
-		#print 'Invalid State'
 		response = make_response(json.dumps("Invalid state!"), 401)
 		response.headers['Content-Type'] = 'application/json'
 		return response
 	else:
-		#db ops
+		# DB operations
 		try:
-			#print 'Trying to create new category'
 			NewCategory = Category(name = request.form['name'])
 			s.add(NewCategory)
 			s.commit()
+		
+			response = make_response(json.dumps(NewCategory.id), 200)
+			response.headers['Content-Type'] = 'application/json'
+			return response
+			
 		except:
-			#print sys.exc_info()[0]
-			#print 'Found some error'
 			response = make_response(json.dumps("Error!"), 500)
 			response.headers['Content-Type'] = 'application/json'
 			return response
-		
-		print 'Returning key: ' + login_session['state']
-		
-		#print 'Created category'
-		response = make_response(json.dumps("Category added!"), 200)
-		response.headers['Content-Type'] = 'application/json'
-		return response
 	
 @app.route('/catalog/<category>/')
 def showCategory(category):
 	dbCategories = getCategories()
 	dbCategory = getSpecificCategory(category)
 	login_session['state'] = getRandomTokenString()
-	""" return category """
-	return render_template('category.html', category = dbCategory, categories = dbCategories, loggedIn = isUserLoggedIn(), STATE = login_session['state'])
+	return render_template(
+			'category.html', 
+			category = dbCategory, 
+			categories = dbCategories, 
+			loggedIn = isUserLoggedIn(), 
+			STATE = login_session['state']
+		)
 		
 @app.route('/catalog/<category>/update', methods=['POST'])
 def updateCategory(category):
-	print 'updateCategory'
-	print 'Key given: ' + request.form['state']
-	print 'Key expected: ' + login_session['state']
 	
 	if isUserLoggedIn() == False:
-		return redirect('/')
+		return render_template('loginError.html')
 	elif request.form['state'] != login_session['state']:
 		response = make_response(json.dumps("Invalid state!"), 401)
 		response.headers['Content-Type'] = 'application/json'
@@ -238,13 +260,9 @@ def updateCategory(category):
 			s.add(CategoryToUpdate)
 			s.commit()
 		except:
-			#print sys.exc_info()[0]
 			response = make_response(json.dumps("Error!"), 500)
 			response.headers['Content-Type'] = 'application/json'
 			return response
-		
-		
-		print 'Returning key: ' + login_session['state']
 		
 		response = make_response(json.dumps("Category updated!"), 200)
 		response.headers['Content-Type'] = 'application/json'
@@ -252,12 +270,9 @@ def updateCategory(category):
 	
 @app.route('/catalog/<category>/delete', methods=['POST'])
 def deleteCategory(category):
-	print 'deleteItem'
-	print 'Key given: ' + request.form['state']
-	print 'Key expected: ' + login_session['state']
 	
 	if isUserLoggedIn() == False:
-		return redirect('/')
+		return render_template('loginError.html')
 	elif request.form['state'] != login_session['state']:
 		response = make_response(json.dumps("Invalid state!"), 401)
 		response.headers['Content-Type'] = 'application/json'
@@ -268,67 +283,53 @@ def deleteCategory(category):
 			s.delete(CategoryToDelete)
 			s.commit()
 		except:
-			#print sys.exc_info()[0]
 			response = make_response(json.dumps("Error!"), 500)
 			response.headers['Content-Type'] = 'application/json'
 			return response
-			
-		print 'returning: ' + login_session['state']
 			
 		response = make_response(json.dumps("Category deleted!"), 200)
 		response.headers['Content-Type'] = 'application/json'
 		return response
 		
-#User submits a new item
+# User submits a new item
 @app.route('/catalog/<category>/submitItem', methods=['POST'])
 def submitItem(category):
-	
-	print 'submitItem'
-	print 'Key given: ' + request.form['state']
-	print 'Key expected: ' + login_session['state']
-	
 	if isUserLoggedIn() == False:
-		return redirect('/')
+		return render_template('loginError.html')
 	elif request.form['state'] != login_session['state']:
 		response = make_response(json.dumps("Invalid state!"), 401)
 		response.headers['Content-Type'] = 'application/json'
 		return response
 	else:
 		try:
-			if (request.form.has_key('oldName') and request.form['oldName'] != ''):
-				print 'Request does have key oldName'
-				print 'oldName value is ' + request.form['oldName']
-				ItemToUpdate = getItem(request.form['oldName'])
+			ItemToUpdate = getItem(request.form['id'])
+			if (ItemToUpdate is not None):
 				ItemToUpdate.name = request.form['name']
 				ItemToUpdate.description = request.form['description']
 			else:
-				#print "Couldn't find existing item, creating new item"
 				ParentCategory = getSpecificCategory(request.form['category'])
-				ItemToUpdate = Item(name = request.form['name'], description = request.form['description'], category = ParentCategory)
+				ItemToUpdate = Item(
+						name = request.form['name'], 
+						description = request.form['description'], 
+						category = ParentCategory
+					)
 			
 			s.add(ItemToUpdate)
 			s.commit()
 		except:
-   			print(traceback.format_exc())
 			response = make_response(json.dumps("Error!"), 500)
 			response.headers['Content-Type'] = 'application/json'
 			return response
 			
-			
-		print 'returning: ' + login_session['state']
-		response = make_response(json.dumps("Item submitted!"), 200)
+		response = make_response(json.dumps(ItemToUpdate.id), 200)
 		response.headers['Content-Type'] = 'application/json'
 		return response
 
-#User wants to create a new item; show the editItem.html template
+# User wants to create a new item; show the editItem.html template
 @app.route('/catalog/<category>/createItem')
 def createItem(category):
-	print 'createItem'
-	print 'Key given: ' + request.args.get('state')
-	print 'Key expected: ' + login_session['state']
-	
 	if isUserLoggedIn() == False:
-		return redirect('/')
+		return render_template('loginError.html')
 	elif request.args.get('state') != login_session['state']:
 		response = make_response(json.dumps("Invalid state!"), 401)
 		response.headers['Content-Type'] = 'application/json'
@@ -337,10 +338,15 @@ def createItem(category):
 		categories = getCategories()
 		dbCategory = getSpecificCategory(category)
 		login_session['state'] = getRandomTokenString();
-		
-		print 'Returning key: ' + login_session['state']
-		#The Jinja filter tests "if item is defined", but None counts as 'defined', so we omit the item this time.
-		return render_template('editItem.html', categories = categories, category = dbCategory, loggedIn = isUserLoggedIn(), STATE = login_session['state'])
+		# The Jinja filter tests "if item is defined", but None counts as 
+		# 'defined', so we omit the item this time.
+		return render_template(
+				'editItem.html', 
+				categories = categories, 
+				category = dbCategory, 
+				loggedIn = isUserLoggedIn(), 
+				STATE = login_session['state']
+			)
 	
 @app.route('/catalog/<category>/<item>/')
 def showVariables(category, item):
@@ -349,17 +355,19 @@ def showVariables(category, item):
 	dbItem = getItem(item)
 	login_session['state'] = getRandomTokenString()
 	
-	return render_template('item.html', categories = categories, category = dbCategory, item = dbItem, loggedIn = isUserLoggedIn(), STATE = login_session['state'])
+	return render_template(
+			'item.html', 
+			categories = categories, 
+			category = dbCategory, 
+			item = dbItem, 
+			loggedIn = isUserLoggedIn(), 
+			STATE = login_session['state']
+		)
 	
 @app.route('/catalog/<category>/<item>/edit')
-def showItemEditTemplate(category, item):
-	
-	print 'showItemEditTemplate'
-	print 'Key given: ' + request.args.get('state')
-	print 'Key expected: ' + login_session['state']
-	
+def showItemEditTemplate(category, item):	
 	if isUserLoggedIn() == False:
-		return redirect('/')
+		return render_template('loginError.html')
 	elif request.args.get('state') != login_session['state']:
 		response = make_response(json.dumps("Invalid state!"), 401)
 		response.headers['Content-Type'] = 'application/json'
@@ -370,38 +378,33 @@ def showItemEditTemplate(category, item):
 		dbItem = getItem(item)
 		login_session['state'] = getRandomTokenString();
 		
-		
-		print 'returning: ' + login_session['state']
-		return render_template('editItem.html', item = dbItem, categories = categories, category = dbCategory, loggedIn = isUserLoggedIn(), STATE = login_session['state'])
+		return render_template(
+				'editItem.html', 
+				item = dbItem, 
+				categories = categories, 
+				category = dbCategory, 
+				loggedIn = isUserLoggedIn(), 
+				STATE = login_session['state']
+			)
 
 @app.route('/catalog/<category>/<item>/delete', methods=['POST'])	
 def deleteItem(category, item):
-	
-	print 'deleteItem'
-	print 'Key given: ' + request.form['state']
-	print 'Key expected: ' + login_session['state']
-	
 	if isUserLoggedIn() == False:
-		return redirect('/')
+		return render_template('loginError.html')
 	elif request.form['state'] != login_session['state']:
 		response = make_response(json.dumps("Invalid state!"), 401)
 		response.headers['Content-Type'] = 'application/json'
 		return response
 	else:
 		try:
-			#print 'Submitted item name is ' + request.form['name']
-			ItemToDelete = getItem(request.form['name'])
-			#print 'ItemToDelete is ' + ItemToDelete.name
+			ItemToDelete = getItem(request.form['id'])
 			s.delete(ItemToDelete)
 			s.commit()
 		except:
-			#print sys.exc_info()[0]
 			response = make_response(json.dumps("Error!"), 500)
 			response.headers['Content-Type'] = 'application/json'
 			return response
 			
-			
-		print 'returning: ' + login_session['state']
 		response = make_response(json.dumps("Item deleted!"), 200)
 		response.headers['Content-Type'] = 'application/json'
 		return response
